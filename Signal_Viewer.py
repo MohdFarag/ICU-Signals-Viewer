@@ -1,5 +1,6 @@
 # Python 3
 
+from audioop import avg
 import sys
 
 # importing Qt widgets
@@ -20,7 +21,7 @@ import os
 from functools import partial
 
 # importing time
-from time import perf_counter
+from time import perf_counter, time
 
 # matplotlib
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
@@ -28,9 +29,10 @@ from matplotlib.figure import Figure
 
 from scipy.io import loadmat
 
+# import random
+from random import randint
 
 class MplCanvas(FigureCanvasQTAgg):
-
     def __init__(self, parent=None, width=5, height=4, dpi=100):
         fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = fig.add_subplot(111)
@@ -48,12 +50,18 @@ class Window(QMainWindow):
         """Variables"""
         self.path = None # path of opened signal file
 
-        self.time = [1,2,3,4,5,6,7,8,9,10] # Time Domain
+        self.time = [i for i in range(0,100)] # Time Domain
 
-        self.data_channel_1 = [0] * 10    # Default Value
-        self.data_channel_2 = [10] * 10   # Default Value
-        self.data_channel_3 = [-10] * 10  # Default Value
-        
+        self.data_channel_1 = [randint(100,200) for _ in range(0,100)]
+        self.data_channel_2 = [randint(-50,50) for _ in range(0,100)]
+        self.data_channel_3 = [randint(-200,-100) for _ in range(0,100)]
+        self.isPlotLive = True
+        #self.data_channel = [-10] * 10  # Default Value
+
+        self.time_live = list()
+        self.data_channel_live_1 = list()
+        self.data_channel_live_2 = list()
+        self.data_channel_live_3 = list()
         
         """main properties"""
         # setting icon to the window
@@ -94,8 +102,15 @@ class Window(QMainWindow):
         mainButtonsLayout.addSpacerItem(QSpacerItem(200, 10, QSizePolicy.Expanding))
 
         downSpeedBtn = QPushButton("-")
+
+        def pausePlay(pauseOrPlay):
+            self.isPlotLive = pauseOrPlay
+
         PauseBtn = QPushButton("Pause")
+        PauseBtn.clicked.connect(partial(pausePlay,False))
         PlayBtn = QPushButton("Play")
+        PlayBtn.clicked.connect(partial(pausePlay,True))
+        
         UpSpeedBtn = QPushButton("+")
     
         downSpeedBtn.setStyleSheet("font-size:14px; border-radius: 6px;border: 1px solid rgba(27, 31, 35, 0.15);padding: 5px 15px;")
@@ -176,8 +191,9 @@ class Window(QMainWindow):
         self.PlotGraph = GrLayout.addPlot(colspan=2)
         self.PlotGraph.setTitle(title,color="w", size="17pt")
         self.PlotGraph.setLabel('bottom', 'Time', 's')
-        self.PlotGraph.setLimits(xMin=min(self.time), xMax=max(self.time),  
-                yMin=min(all_data_channel), yMax=max(all_data_channel))
+        self.PlotGraph.setLimits(xMin=min(self.time), xMax=max(self.time), 
+                                minXRange=(len(self.time)/2)-len(self.time)/10 , maxXRange=max(self.time)+len(self.time)/10,
+                                yMin=min(all_data_channel) - len(self.time), yMax=max(all_data_channel) + len(self.time))
         self.legendItemName = self.PlotGraph.addLegend()
 
         # Plot and return the line of the signal to manipulate it. 
@@ -185,21 +201,24 @@ class Window(QMainWindow):
         self.data_line_ch2 = self.plotChannelSignal(self.PlotGraph, self.time, self.data_channel_2, "Channel 2")
         self.data_line_ch3 = self.plotChannelSignal(self.PlotGraph, self.time, self.data_channel_3, "Channel 3")
 
-        ### Commenting ##
-        def timePlot():
-            """Real Time Plot"""
-            #     self.timer = QtCore.QTimer()
-            #     self.timer.setInterval(50)
-            #     self.timer.timeout.connect(self.update_plot_data)
-            #     self.timer.start()
+        # ... init continued ...
+        self.timer = QtCore.QTimer()
+        self.timer.setInterval(100)
+        self.timer.timeout.connect(self.update_plot_data)
+        self.timer.start()
 
-            # def update_plot_data(self):
+    def update_plot_data(self):
 
-            #     self.data_channel_1[:-1] = self.data_channel_1[1:]  # Remove the first
-            #     self.data_channel_1[-1] = np.random.normal()  # Add a new random value.
+        if len(self.time_live) < len(self.time) and self.isPlotLive:
+            self.time_live.append(self.time[len(self.time_live)])
+            
+            self.data_channel_live_1.append(self.data_channel_1[len(self.time_live)])
+            self.data_channel_live_2.append(self.data_channel_2[len(self.time_live)])
+            self.data_channel_live_3.append(self.data_channel_3[len(self.time_live)])
 
-            #     self.data_line_ch1.setData(self.time, self.data_channel_1)  # Update the data.
-            pass
+            self.data_line_ch1.setData(self.time_live, self.data_channel_live_1)  # Update the data.
+            self.data_line_ch2.setData(self.time_live, self.data_channel_live_2)  # Update the data.
+            self.data_line_ch3.setData(self.time_live, self.data_channel_live_3)  # Update the data.
     
     # Plot channel of the signal.
     def plotChannelSignal(self, Channel, x, y, plotname, color="w"):
@@ -373,8 +392,7 @@ class Window(QMainWindow):
 
         def update(self):
             self.data_line_ch1.clear()
-            self.data_line_ch1.setData(self.time, self.data_channel_1)
-            
+            self.data_line_ch1.setData(self.time, self.data_channel_1)   
         
         open(self)
         read(self)
