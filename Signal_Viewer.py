@@ -10,7 +10,7 @@ from matplotlib.pyplot import pause, title
 # importing numpy as np
 import numpy as np
 import pandas as pd
- 
+
 # importing pyqtgraph as pg
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
@@ -26,19 +26,29 @@ from time import perf_counter, time
 # matplotlib
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
 
+# import scipy
 from scipy.io import loadmat
+from scipy import signal
 
 # import random
-from random import randint
+import random
+
 
 class MplCanvas(FigureCanvasQTAgg):
     def __init__(self, parent=None, width=5, height=4, dpi=100):
-        fig = Figure(figsize=(width, height), dpi=dpi)
-        self.axes = fig.add_subplot(111)
+        self.fig = Figure(figsize=(width, height), dpi=dpi)
+        self.axes = self.fig.add_subplot(111)
         self.axes.set_title('Spectrogram')
-        super(MplCanvas, self).__init__(fig)
-
+        super(MplCanvas, self).__init__(self.fig)
+    
+    def plotSignal(self,data_channel):
+        data_channel = np.array(data_channel)
+        f, t, Sxx = signal.spectrogram(data_channel, 800)
+        self.axes.pcolormesh(t, f, Sxx, shading='gouraud')
+        self.draw()
+        
 
 class Window(QMainWindow):
     """Main Window."""
@@ -50,11 +60,11 @@ class Window(QMainWindow):
         """Variables"""
         self.path = None # path of opened signal file
 
-        self.time = [i for i in range(0,100)] # Time Domain
+        self.time = [i for i in range(0, 500)] # Time Domain
 
-        self.data_channel_1 = [randint(100,200) for _ in range(0,100)]
-        self.data_channel_2 = [randint(-50,50) for _ in range(0,100)]
-        self.data_channel_3 = [randint(-200,-100) for _ in range(0,100)]
+        self.data_channel_1 = [random.random()+10 for _ in range(0, 500)]
+        self.data_channel_2 = [random.random() for _ in range(0, 500)]
+        self.data_channel_3 = [random.random()-10 for _ in range(0, 500)]
         self.isPlotLive = True
         #self.data_channel = [-10] * 10  # Default Value
 
@@ -62,6 +72,8 @@ class Window(QMainWindow):
         self.data_channel_live_1 = list()
         self.data_channel_live_2 = list()
         self.data_channel_live_3 = list()
+
+        self.speed = 50
         
         """main properties"""
         # setting icon to the window
@@ -69,8 +81,6 @@ class Window(QMainWindow):
         
         # setting title
         self.setWindowTitle("Multi-Channel Signal Viewer")
-
-        #self.resize(600, 800) # set the size of the app
 
         # UI contents
         self._createMenuBar()
@@ -101,8 +111,19 @@ class Window(QMainWindow):
 
         mainButtonsLayout.addSpacerItem(QSpacerItem(200, 10, QSizePolicy.Expanding))
 
-        downSpeedBtn = QPushButton("-")
+        def signalSpeed(increaseDecrease):
+            if increaseDecrease : 
+                self.speed /= 2
+            else :
+                self.speed *= 2
+            
+            self.timer.setInterval(int(self.speed))
 
+        downSpeedBtn = QPushButton("-")
+        downSpeedBtn.clicked.connect(partial(signalSpeed,False))
+
+
+        # PauseAndPlay
         def pausePlay(pauseOrPlay):
             self.isPlotLive = pauseOrPlay
 
@@ -112,7 +133,8 @@ class Window(QMainWindow):
         PlayBtn.clicked.connect(partial(pausePlay,True))
         
         UpSpeedBtn = QPushButton("+")
-    
+        UpSpeedBtn.clicked.connect(partial(signalSpeed,True))
+
         downSpeedBtn.setStyleSheet("font-size:14px; border-radius: 6px;border: 1px solid rgba(27, 31, 35, 0.15);padding: 5px 15px;")
         PauseBtn.setStyleSheet("font-size:14px; border-radius: 6px;border: 1px solid rgba(27, 31, 35, 0.15);padding: 5px 15px;")
         PlayBtn.setStyleSheet("font-size:14px; border-radius: 6px;border: 1px solid rgba(27, 31, 35, 0.15);padding: 5px 15px;")
@@ -130,8 +152,11 @@ class Window(QMainWindow):
         plotsLayout.addSpacerItem(QSpacerItem(10, 25, QSizePolicy.Expanding))
 
         SpectrogramLayout = QVBoxLayout()
-        plot = MplCanvas(self, width=5, height=6, dpi=100)
-        SpectrogramLayout.addWidget(plot)
+
+        self.spectrogramGraph = MplCanvas(self, width=5, height=6, dpi=100)
+        self.plotSpectrogram(self.data_channel_1)
+
+        SpectrogramLayout.addWidget(self.spectrogramGraph)
         SpectrogramLayout.addSpacerItem(QSpacerItem(10, 60, QSizePolicy.Expanding))
 
         TopLayout.addLayout(plotsLayout,2)
@@ -171,6 +196,11 @@ class Window(QMainWindow):
         fileMenu.addAction(openF)
         openF.triggered.connect(self.browse_Signal)
 
+        exportS = QAction("Export",self)
+        exportS.setShortcut("Ctrl+E")
+        fileMenu.addAction(exportS)
+        exportS.triggered.connect(self.exportPDF)
+
         quit = QAction("Quit",self)
         quit.setShortcut("Ctrl+q")
         fileMenu.addAction(quit)
@@ -201,15 +231,14 @@ class Window(QMainWindow):
         self.data_line_ch2 = self.plotChannelSignal(self.PlotGraph, self.time, self.data_channel_2, "Channel 2")
         self.data_line_ch3 = self.plotChannelSignal(self.PlotGraph, self.time, self.data_channel_3, "Channel 3")
 
-        # ... init continued ...
         self.timer = QtCore.QTimer()
-        self.timer.setInterval(100)
+        self.timer.setInterval(int(self.speed))
         self.timer.timeout.connect(self.update_plot_data)
         self.timer.start()
 
     def update_plot_data(self):
 
-        if len(self.time_live) < len(self.time) and self.isPlotLive:
+        if len(self.time_live) < len(self.time)-1 and self.isPlotLive:
             self.time_live.append(self.time[len(self.time_live)])
             
             self.data_channel_live_1.append(self.data_channel_1[len(self.time_live)])
@@ -398,10 +427,14 @@ class Window(QMainWindow):
         read(self)
         update(self)
     
+    # Export information in PDF
+    def exportPDF(self):
+        pass
+
     # Change Color of Channel
     def changeColorBtn(self,data_line,colorbtn):
         def done(btn):
-            data_line.setPen(pg.mkPen(btn.color()))
+            data_line.setPen(btn.color())
 
         colorbtn.sigColorChanged.connect(done)
 
@@ -427,6 +460,9 @@ class Window(QMainWindow):
         self.legendItemName.removeItem(data_line)
         self.legendItemName.addItem(data_line, TitleBox.text())
 
+    def plotSpectrogram(self, data_channel):
+        self.spectrogramGraph.plotSignal(data_channel)
+        
     # Quit the window    
     def exit(self):
         sys.exit()
