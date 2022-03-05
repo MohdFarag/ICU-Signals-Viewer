@@ -5,7 +5,6 @@ import sys
 
 # importing Qt widgets
 from PyQt5.QtWidgets import *
-from matplotlib.pyplot import pause, title
 
 # importing numpy as np
 import numpy as np
@@ -40,13 +39,14 @@ class MplCanvas(FigureCanvasQTAgg):
     def __init__(self, parent=None, width=5, height=4, dpi=100):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = self.fig.add_subplot(111)
-        self.axes.set_title('Spectrogram')
+        self.axes.set_title('Spectrogram',fontweight ="bold")
         super(MplCanvas, self).__init__(self.fig)
     
-    def plotSignal(self,data_channel):
+    def plotSignal(self, data_channel, color, details=50):
+        fs = 400
+        nfft = 400
         data_channel = np.array(data_channel)
-        f, t, Sxx = signal.spectrogram(data_channel, 800)
-        self.axes.pcolormesh(t, f, Sxx, shading='gouraud')
+        self.axes.specgram(data_channel, nfft, fs, mode='magnitude',cmap=color, noverlap=nfft/2)
         self.draw()
         
 
@@ -86,24 +86,26 @@ class Window(QMainWindow):
         self._createMenuBar()
         self.initUI()
 
+        self.statusBar = QStatusBar()
+        self.setStatusBar(self.statusBar)
+
     def initUI(self):
         """Window GUI contents"""
         wid = QWidget(self)
         self.setCentralWidget(wid)
-        
+        # setting configuration options
+        pg.setConfigOptions(antialias=True)
+
+        # big Layout
         outerLayout = QVBoxLayout()
 
         TopLayout = QHBoxLayout()
 
         # Create a layout for the plots
         plotsLayout = QVBoxLayout()
-        
-        # setting configuration options
-        pg.setConfigOptions(antialias=True)
 
         # creating graphics layout widget
         self.GrLayout = pg.GraphicsLayoutWidget()
-
         self._addPlot(self.GrLayout, "Channels")
 
         # Create a layout for the main buttons
@@ -111,30 +113,44 @@ class Window(QMainWindow):
 
         mainButtonsLayout.addSpacerItem(QSpacerItem(200, 10, QSizePolicy.Expanding))
 
+        # Main buttons to manipulate the plot
+
         def signalSpeed(increaseDecrease):
-            if increaseDecrease : 
-                self.speed /= 2
-            else :
-                self.speed *= 2
-            
-            self.timer.setInterval(int(self.speed))
+                if increaseDecrease :
+                    if self.speed < 100: 
+                        self.speed += 25
+                        self.statusBar.showMessage("Speed increased") 
+                    else :
+                        self.statusBar.showMessage("Speed can't increased!")    
+                else :
+                    if self.speed < 100 and self.speed > 0 : 
+                        self.speed -= 25
+                        self.statusBar.showMessage("Speed decreased") 
+                    else :
+                        self.statusBar.showMessage("Speed can't decreased!")
+                self.SpeedSlider.setValue(int(self.speed))        
+                self.timer.setInterval(int(100 - self.speed))
 
-        downSpeedBtn = QPushButton("-")
-        downSpeedBtn.clicked.connect(partial(signalSpeed,False))
-
-
-        # PauseAndPlay
         def pausePlay(pauseOrPlay):
             self.isPlotLive = pauseOrPlay
+            if pauseOrPlay:
+                self.statusBar.showMessage("Plot is running...")
+            else :
+                self.statusBar.showMessage("Plot is stopped!!")
 
+        # Down Button
+        downSpeedBtn = QPushButton("-")
+        downSpeedBtn.clicked.connect(partial(signalSpeed,False))
+        # PauseAndPlay
         PauseBtn = QPushButton("Pause")
         PauseBtn.clicked.connect(partial(pausePlay,False))
         PlayBtn = QPushButton("Play")
         PlayBtn.clicked.connect(partial(pausePlay,True))
-        
+        # Up Button
         UpSpeedBtn = QPushButton("+")
         UpSpeedBtn.clicked.connect(partial(signalSpeed,True))
 
+        # StyleSheet
         downSpeedBtn.setStyleSheet("font-size:14px; border-radius: 6px;border: 1px solid rgba(27, 31, 35, 0.15);padding: 5px 15px;")
         PauseBtn.setStyleSheet("font-size:14px; border-radius: 6px;border: 1px solid rgba(27, 31, 35, 0.15);padding: 5px 15px;")
         PlayBtn.setStyleSheet("font-size:14px; border-radius: 6px;border: 1px solid rgba(27, 31, 35, 0.15);padding: 5px 15px;")
@@ -147,17 +163,56 @@ class Window(QMainWindow):
         
         mainButtonsLayout.addSpacerItem(QSpacerItem(200, 10, QSizePolicy.Expanding))
 
+        def SpeedSliderChange(value):
+            self.speed = value
+            self.timer.setInterval(int(100 - self.speed))
+
+        self.SpeedSlider = QSlider(Qt.Horizontal, self)
+        self.SpeedSlider.setValue(self.speed)
+        self.SpeedSlider.valueChanged[int].connect(SpeedSliderChange)
+
         plotsLayout.addWidget(self.GrLayout)
+        plotsLayout.addWidget(self.SpeedSlider)
         plotsLayout.addLayout(mainButtonsLayout)
         plotsLayout.addSpacerItem(QSpacerItem(10, 25, QSizePolicy.Expanding))
 
         SpectrogramLayout = QVBoxLayout()
 
         self.spectrogramGraph = MplCanvas(self, width=5, height=6, dpi=100)
-        self.plotSpectrogram(self.data_channel_1)
 
+        # Min Contrast changer
+        def minSpectrogramSliderChange(value):
+            self.plotSpectrogram(self.data_channel_1,"Reds",value)
+            self.minvalueLabel.setText(str(value))
+        minContrastSpectrogramLayout = QHBoxLayout()        
+        minLabel = QLabel("Min:")
+        minSpectrogramSlider = QSlider(Qt.Horizontal, self)
+        minSpectrogramSlider.setValue(50)
+        minSpectrogramSlider.valueChanged[int].connect(minSpectrogramSliderChange)  
+        self.minvalueLabel = QLabel(str(minSpectrogramSlider.value()))  
+        minContrastSpectrogramLayout.addWidget(minLabel)
+        minContrastSpectrogramLayout.addWidget(minSpectrogramSlider)
+        minContrastSpectrogramLayout.addWidget(self.minvalueLabel)
+
+        # Max Contrast changer
+        def maxSpectrogramSliderChange(value):
+            self.plotSpectrogram(self.data_channel_2,"Reds",value)
+            self.maxValueLabel.setText(str(value))
+        maxContrastSpectrogramLayout = QHBoxLayout()        
+        maxLabel = QLabel("Max:")
+        maxSpectrogramSlider = QSlider(Qt.Horizontal, self)
+        maxSpectrogramSlider.setValue(50)
+        maxSpectrogramSlider.valueChanged[int].connect(maxSpectrogramSliderChange)
+        self.maxValueLabel = QLabel(str(maxSpectrogramSlider.value()))    
+        maxContrastSpectrogramLayout.addWidget(maxLabel)
+        maxContrastSpectrogramLayout.addWidget(maxSpectrogramSlider)
+        maxContrastSpectrogramLayout.addWidget(self.maxValueLabel)
+        
+        # Left part (Spectrogram)
         SpectrogramLayout.addWidget(self.spectrogramGraph)
-        SpectrogramLayout.addSpacerItem(QSpacerItem(10, 60, QSizePolicy.Expanding))
+        SpectrogramLayout.addLayout(minContrastSpectrogramLayout)
+        SpectrogramLayout.addLayout(maxContrastSpectrogramLayout)                
+        SpectrogramLayout.addSpacerItem(QSpacerItem(10, 35, QSizePolicy.Expanding))
 
         TopLayout.addLayout(plotsLayout,2)
         TopLayout.addLayout(SpectrogramLayout,1)
@@ -166,7 +221,7 @@ class Window(QMainWindow):
         ChannelbuttonsLayout = QHBoxLayout()
         # Add some buttons to the layout
         tabs = QTabWidget()
-        
+        tabs.setStyleSheet("font-size:15px;")
         tabs.addTab(self.channelTabUI1(), "Channel 1")
         tabs.addTab(self.channelTabUI2(), "Channel 2")
         tabs.addTab(self.channelTabUI3(), "Channel 3")
@@ -221,9 +276,9 @@ class Window(QMainWindow):
         self.PlotGraph = GrLayout.addPlot(colspan=2)
         self.PlotGraph.setTitle(title,color="w", size="17pt")
         self.PlotGraph.setLabel('bottom', 'Time', 's')
-        self.PlotGraph.setLimits(xMin=min(self.time), xMax=max(self.time), 
-                                minXRange=(len(self.time)/2)-len(self.time)/10 , maxXRange=max(self.time)+len(self.time)/10,
-                                yMin=min(all_data_channel) - len(self.time), yMax=max(all_data_channel) + len(self.time))
+        self.PlotGraph.setLimits(xMin=min(self.time) - 10, xMax=max(self.time) + 10, 
+                                yMin=min(all_data_channel) - len(self.time)/10, yMax=max(all_data_channel) + len(self.time)/10)
+        # run to end
         self.legendItemName = self.PlotGraph.addLegend()
 
         # Plot and return the line of the signal to manipulate it. 
@@ -280,6 +335,7 @@ class Window(QMainWindow):
         
         TitleBox = QLineEdit(self)
         TitleBox.setStyleSheet("font-size:14px; border-radius: 6px;border: 1px solid rgba(27, 31, 35, 0.15);padding: 5px 15px;")
+        TitleBox.setText("Channel 1")
         buttonsLayout.addWidget(TitleBox,4)
         
         changeTitleBtn = QPushButton("Change Label")
@@ -322,6 +378,7 @@ class Window(QMainWindow):
         
         TitleBox = QLineEdit(self)
         TitleBox.setStyleSheet("font-size:14px; border-radius: 6px;border: 1px solid rgba(27, 31, 35, 0.15);padding: 5px 15px;")
+        TitleBox.setText("Channel 2")
         buttonsLayout.addWidget(TitleBox,4)
         
         changeTitleBtn = QPushButton("Change Label")
@@ -365,6 +422,7 @@ class Window(QMainWindow):
         
         TitleBox = QLineEdit(self)
         TitleBox.setStyleSheet("font-size:14px; border-radius: 6px;border: 1px solid rgba(27, 31, 35, 0.15);padding: 5px 15px;")
+        TitleBox.setText("Channel 3")
         buttonsLayout.addWidget(TitleBox,4)
         
         changeTitleBtn = QPushButton("Change Label")
@@ -390,11 +448,52 @@ class Window(QMainWindow):
         """Create the Network page UI."""
         SpectrogramTab = QWidget()
         buttonsLayout = QHBoxLayout()
-        buttonsLayout.addWidget(QPushButton("scTabUI3 Button1"))
-        buttonsLayout.addWidget(QPushButton("scTabUI3 Button2"))
-        buttonsLayout.addWidget(QPushButton("scTabUI3 Button3"))
+
+        buttonsLayout.addSpacerItem(QSpacerItem(100, 10, QSizePolicy.Expanding))
+
+        channelLabel = QLabel("Channel:")
+        channelLabel.setStyleSheet("font-size:14px;")
+        self.channelComboBox = QComboBox()
+        self.channelComboBox.setStyleSheet("font-size:12px; padding: 5px 10px;")
+        self.channelComboBox.addItem("")
+        self.channelComboBox.addItem("Channel 1")
+        self.channelComboBox.addItem("Channel 2")
+        self.channelComboBox.addItem("Channel 3")
+
+        self.channelComboBox.currentTextChanged.connect(self.channelSpectrogram)
+        
+        buttonsLayout.addWidget(channelLabel,1)
+        buttonsLayout.addWidget(self.channelComboBox,2)
+
+        buttonsLayout.addSpacerItem(QSpacerItem(200, 10, QSizePolicy.Expanding))
+        
+        colorLabel = QLabel("Color:")
+        colorLabel.setStyleSheet("font-size:14px;")
+        colorComboBox = QComboBox()
+        colorComboBox.setStyleSheet("font-size:12px; padding: 5px 10px;")
+        colorComboBox.addItem("")
+        colorComboBox.addItem("Red")
+        colorComboBox.addItem("Green")
+        colorComboBox.addItem("Blue")
+        colorComboBox.addItem("Cyan")
+        colorComboBox.addItem("Magenta")
+        buttonsLayout.addWidget(colorLabel,1)
+        buttonsLayout.addWidget(colorComboBox,2)
+
+        buttonsLayout.addSpacerItem(QSpacerItem(100, 10, QSizePolicy.Expanding))
+        
         SpectrogramTab.setLayout(buttonsLayout)
         return SpectrogramTab
+
+    # Choose channel for the spectrogram
+    def channelSpectrogram(self):
+            value = self.channelComboBox.currentText()
+            if value=="Channel 1":
+                self.plotSpectrogram(self.data_channel_1,"Reds",500)
+            elif value=="Channel 2":
+                self.plotSpectrogram(self.data_channel_2,"Reds",500)
+            elif value=="Channel 3":
+                self.plotSpectrogram(self.data_channel_3,"Reds",500)
 
     # Browse and Open the signal.
     def browse_Signal(self):
@@ -460,8 +559,8 @@ class Window(QMainWindow):
         self.legendItemName.removeItem(data_line)
         self.legendItemName.addItem(data_line, TitleBox.text())
 
-    def plotSpectrogram(self, data_channel):
-        self.spectrogramGraph.plotSignal(data_channel)
+    def plotSpectrogram(self, data_channel, color, details):
+        self.spectrogramGraph.plotSignal(data_channel, color, details)
         
     # Quit the window    
     def exit(self):
