@@ -43,7 +43,6 @@ class Window(QMainWindow):
         self.data_channel_1 = [0]
         self.data_channel_2 = [0]
         self.data_channel_3 = [0]
-        self.isPlotLive = True
         self.existChannel = [0, 0, 0]
         #self.data_channel = [-10] * 10  # Default Value
 
@@ -88,9 +87,8 @@ class Window(QMainWindow):
         self.PlotGraph = self.GrLayout.addPlot(colspan=2)
         self.PlotGraph.setTitle("Channels",color="w", size="17pt")
         self.PlotGraph.setLabel('bottom', 'Time', 's')
-        self.PlotGraph.enableAutoRange(0.95, x=False, y=True)
-        self.PlotGraph.setXRange(300, 450)
-        self.PlotGraph.setAutoVisible(x=False, y=True)
+        self.PlotGraph.enableAutoRange(0.95, x=True, y=True)
+        self.PlotGraph.setAutoVisible(x=True, y=True)
 
         # run to end
         self.legendItemName = self.PlotGraph.addLegend()
@@ -123,13 +121,14 @@ class Window(QMainWindow):
                         self.speed = 0
                     self.statusBar.showMessage("Speed decreased")
                 self.SpeedSlider.setValue(int(self.speed))
-                self.timer.setInterval(int(500 - 5 * self.speed))
+                self.timer.setInterval(int(100 - self.speed))
 
         def pausePlay(pauseOrPlay):
-            self.isPlotLive = pauseOrPlay
             if pauseOrPlay:
+                self.timer.start()
                 self.statusBar.showMessage("Plot is running...")
             else :
+                self.timer.stop()
                 self.statusBar.showMessage("Plot is stopped!!")
 
         # Down Button
@@ -218,13 +217,12 @@ class Window(QMainWindow):
         # Create a layout for the buttons for specific signal
         ChannelbuttonsLayout = QHBoxLayout()
         # Add some buttons to the layout
-        tabs = QTabWidget()
-        tabs.setStyleSheet("font-size:15px;")
-        tabs.addTab(self.channelTabUI1(), "Channel 1")
-        tabs.addTab(self.channelTabUI2(), "Channel 2")
-        tabs.addTab(self.channelTabUI3(), "Channel 3")
-        tabs.addTab(self.SpectrogramTab(), "Spectrogram")
-        ChannelbuttonsLayout.addWidget(tabs)
+        self.tabs = QTabWidget()
+        self.tabs.activateWindow()
+        self.tabs.setStyleSheet("font-size:15px;")
+        self.tabs.addTab(self.SpectrogramTab(), "Spectrogram")
+        
+        ChannelbuttonsLayout.addWidget(self.tabs)
 
         # Nest the inner layouts into the outer layout
         outerLayout.addLayout(TopLayout,5)
@@ -270,8 +268,7 @@ class Window(QMainWindow):
             self.timer.start()
 
     def update_plot_data(self):
-
-        if len(self.time_live) < len(self.time)-1 and self.isPlotLive:
+        if len(self.time_live) < len(self.time)-1:
             self.time_live.append(self.time[len(self.time_live)])
             
             if self.existChannel[0] != 0 :
@@ -296,6 +293,9 @@ class Window(QMainWindow):
     def channelTabUI1(self):
         """Create the General page UI."""
         chTabUI1Tab = QWidget()
+        if self.existChannel[0] == 0:
+            chTabUI1Tab.setDisabled(True)
+
         buttonsLayout = QHBoxLayout()
         
         buttonsLayout.addSpacerItem(QSpacerItem(100, 10, QSizePolicy.Expanding))
@@ -341,6 +341,9 @@ class Window(QMainWindow):
     def channelTabUI2(self):
         """Create the Network page UI."""
         chTabUI2Tab = QWidget()
+        if self.existChannel[1] == 0:
+            chTabUI2Tab.setDisabled(True)
+
         buttonsLayout = QHBoxLayout()
     
         buttonsLayout.addSpacerItem(QSpacerItem(100, 10, QSizePolicy.Expanding))
@@ -385,6 +388,8 @@ class Window(QMainWindow):
     def channelTabUI3(self):
         """Create the Network page UI."""
         chTabUI3Tab = QWidget()
+        if self.existChannel[2] == 0:
+            chTabUI3Tab.setDisabled(True)
         buttonsLayout = QHBoxLayout()
     
         buttonsLayout.addSpacerItem(QSpacerItem(100, 10, QSizePolicy.Expanding))
@@ -493,13 +498,15 @@ class Window(QMainWindow):
 
     def _addChannel(self, downloadedDataChannel):
         if self.existChannel[0] == 0 :
- 
             self.data_channel_live_1 = []
             self.data_line_ch1.clear()
+
             self.data_channel_1 = downloadedDataChannel
             self.data_channel_live_1 = list()
             self.existChannel[0] = 1
- 
+
+            self.tabs.addTab(self.channelTabUI1(), "Channel 1")
+
             self.statusBar.showMessage("Channel 1 loaded successfully")
         elif self.existChannel[1] == 0 :
             
@@ -509,7 +516,9 @@ class Window(QMainWindow):
             self.data_channel_2 = downloadedDataChannel
             self.data_channel_live_2 = list()
             self.existChannel[1] = 1
-            
+
+            self.tabs.addTab(self.channelTabUI2(), "Channel 2")
+
             self.statusBar.showMessage("Channel 2 loaded successfully")
         elif self.existChannel[2] == 0 :
            
@@ -519,11 +528,13 @@ class Window(QMainWindow):
             self.data_channel_3 = downloadedDataChannel
             self.data_channel_live_3 = list()
             self.existChannel[2] = 1
-            
+
+            self.tabs.addTab(self.channelTabUI3(), "Channel 3")
+
             self.statusBar.showMessage("Channel 3 loaded successfully")
-        
         else :
             self.statusBar.showMessage("You can't add more than 3 channels, clear one from file menu then add again!")
+            
         self.addZerosChannels()
 
     def addZerosChannels(self):
@@ -588,10 +599,9 @@ class Window(QMainWindow):
         all_data_channel = self.data_channel_1.copy()
         all_data_channel.extend(self.data_channel_2)
         all_data_channel.extend(self.data_channel_3)
-        self.PlotGraph.setLimits(xMin=0, xMax=len(self.data_channel_1),
-                                 minXRange=0, maxXRange=10,
+        self.PlotGraph.setLimits(xMin=min(self.time), xMax=max(self.time),
+                                 minXRange=0, maxXRange=50,
                                  yMin=min(all_data_channel), yMax=max(all_data_channel))
-
 
     # Quit the window    
     def exit(self):

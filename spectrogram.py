@@ -40,3 +40,4 @@ class MplCanvas(FigureCanvasQTAgg):
         self.data_channel = np.array(self.data_channel)
         pxx,  freq, t, cax = self.axes.specgram(self.data_channel, nfft, fs, cmap=self.colorPalette, noverlap=nfft/2, mode="psd", vmin=self.minContrast,vmax=self.maxContrast)
         self.draw()
+        
