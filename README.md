@@ -7,8 +7,6 @@
 ### **Description:**
 <p>The main idea from application is plotting multiple (channels of) signals and give the user to:</p>
 
-<br><br>
-
 <ul>
 <li>Manipulate the channels (Change color, Change color, Zoom in, etc...).</li>
 <li>Compare between channels by start the signals in the same time.</li>
