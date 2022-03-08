@@ -66,7 +66,7 @@ class Window(QMainWindow):
         self.initUI()
 
         self.statusBar = QStatusBar()
-        self.statusBar.setStyleSheet("font-size:13px; padding: 2px;")
+        self.statusBar.setStyleSheet("font-size:12px; padding: 3px;")
         self.setStatusBar(self.statusBar)
 
     def initUI(self):
@@ -125,6 +125,7 @@ class Window(QMainWindow):
                     else :
                         self.speed = 0
                     self.statusBar.showMessage("Speed decreased")
+                self.speedValueLabel.setText(str(self.speed))
                 self.SpeedSlider.setValue(int(self.speed))
                 self.timer.setInterval(int((100-self.speed)))
 
@@ -163,15 +164,29 @@ class Window(QMainWindow):
 
         def SpeedSliderChange(value):
             self.speed = value
+            self.speedValueLabel.setText(str(value))
             self.timer.setInterval(int(1*(100-self.speed)))
+        
+        speedSliderLayout = QHBoxLayout()
+        sliderLabel=QLabel("Speed: ")
+        sliderLabel.setStyleSheet("font-size: 13px;padding: 2px;font-weight: 800;")
 
         self.SpeedSlider = QSlider(Qt.Horizontal, self)
         self.SpeedSlider.setValue(self.speed)
         self.SpeedSlider.valueChanged[int].connect(SpeedSliderChange)
 
-        plotsLayout.addWidget(self.SpeedSlider)
+        self.speedValueLabel = QLabel("50")
+        self.speedValueLabel.setStyleSheet("font-size: 13px;padding: 2px;font-weight: 800;")
+
+        speedSliderLayout.addSpacerItem((QSpacerItem(30, 10, QSizePolicy.Expanding)))
+        speedSliderLayout.addWidget(sliderLabel,1)
+        speedSliderLayout.addWidget(self.SpeedSlider,10)
+        speedSliderLayout.addWidget(self.speedValueLabel,1)
+        speedSliderLayout.addSpacerItem((QSpacerItem(30, 10, QSizePolicy.Expanding)))
+
+
+        plotsLayout.addLayout(speedSliderLayout)
         plotsLayout.addLayout(mainButtonsLayout)
-        plotsLayout.addSpacerItem(QSpacerItem(10, 25, QSizePolicy.Expanding))
 
         SpectrogramLayout = QVBoxLayout()
         
@@ -189,6 +204,7 @@ class Window(QMainWindow):
         # Min contrast spectrogram control
         minContrastSpectrogramLayout = QHBoxLayout()        
         minLabel = QLabel("Min:")
+        minLabel.setStyleSheet("font-size: 13px;padding: 2px;font-weight: 800;")
         minSpectrogramSlider = QSlider(Qt.Horizontal, self)
         minSpectrogramSlider.setValue(50)
         minSpectrogramSlider.valueChanged[int].connect(minSpectrogramSliderChange)  
@@ -202,9 +218,11 @@ class Window(QMainWindow):
             self.maxValueLabel.setText(str(value))
             self.spectrogramGraph.set_maxContrast(value)
             self.spectrogramGraph.plotSignal()
+
         # Max contrast spectrogram control
         maxContrastSpectrogramLayout = QHBoxLayout()        
         maxLabel = QLabel("Max:")
+        maxLabel.setStyleSheet("font-size: 13px;padding: 2px; font-weight: 800;")
         maxSpectrogramSlider = QSlider(Qt.Horizontal, self)
         maxSpectrogramSlider.setValue(50)
         maxSpectrogramSlider.valueChanged[int].connect(maxSpectrogramSliderChange)
@@ -231,7 +249,6 @@ class Window(QMainWindow):
         self.tabs.addTab(self.SpectrogramTab(), "Spectrogram")
         
         ChannelbuttonsLayout.addWidget(self.tabs)
-
 
         allDockArea = DockArea()
         
@@ -518,16 +535,24 @@ class Window(QMainWindow):
 
     # Choose channel for the spectrogram
     def channelSpectrogram(self,spectrogramGraph):
-            
             value = self.channelComboBox.currentText()
             spectrogramGraph.clearSignal()
             
             if value == "Channel 1":
-                spectrogramGraph.set_data_channel(self.data_channel_live_1)
+                if self.existChannel[0] == 1 :
+                    spectrogramGraph.set_data_channel(self.data_channel_live_1)
+                else :
+                    self.statusBar.showMessage("Choose Channel 1 first!")
             elif value == "Channel 2":
-                spectrogramGraph.set_data_channel(self.data_channel_live_2)
+                if self.existChannel[0] == 1 :
+                    spectrogramGraph.set_data_channel(self.data_channel_live_2)
+                else :
+                    self.statusBar.showMessage("Choose Channel 2 first!")
             elif value == "Channel 3":
-                spectrogramGraph.set_data_channel(self.data_channel_live_3)
+                if self.existChannel[0] == 1 :
+                    spectrogramGraph.set_data_channel(self.data_channel_live_3)
+                else :
+                    self.statusBar.showMessage("Choose Channel 3 first!")
             spectrogramGraph.plotSignal()
 
     # Browse and Open the signal.
@@ -540,7 +565,7 @@ class Window(QMainWindow):
             if self.fileExtension == "csv(*.csv)":
                 downloadedDataChannel = pd.read_csv(self.path).iloc[:,0]
                 downloadedDataChannel = downloadedDataChannel.values.tolist()
-                downloadedDataChannel = downloadedDataChannel[::2] # sample rate
+                downloadedDataChannel = downloadedDataChannel[::] # sample rate
             self._addNewChannel(downloadedDataChannel)
             self._updatePlot()
         else :
@@ -609,7 +634,6 @@ class Window(QMainWindow):
         self.time = np.linspace(0,maxLength-1,maxLength)
         self.time_live = list()
         
-
     # Export information in PDF
     def exportPDF(self):
         exporter = pg.exporters.ImageExporter(self.GrLayout.scene())
@@ -723,11 +747,10 @@ class Window(QMainWindow):
         all_data_channel.extend(self.data_channel_2)
         all_data_channel.extend(self.data_channel_3)
         self.PlotGraph.setLimits(xMin=min(self.time), xMax=max(self.time), 
-                                #minXRange=(len(self.time)/2)-len(self.time)/10 , maxXRange=max(self.time)+len(self.time)/10,
+                                minXRange=0 , maxXRange=100,
                                 yMin=min(all_data_channel) - np.absolute(min(all_data_channel)/2) , 
                                 yMax=max(all_data_channel) + np.absolute(max(all_data_channel)/2))
-        # FIX LATER
-        self.PlotGraph.setXRange(min=self.incrementTimeAlongSignalRun, max=self.incrementTimeAlongSignalRun+50, padding=1, update=True)
+        #self.PlotGraph.setXRange(min=0, max=10, padding=1, update=True)
 
     def signalClear(self,channelNumber):
         if channelNumber == 0:

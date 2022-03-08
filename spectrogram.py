@@ -20,7 +20,7 @@ class MplCanvas(FigureCanvasQTAgg):
     
     data_channel = [np.random.randint(-10,10) for i in range(500)]
     colorPalette = "binary"
-    minContrast = -50
+    minContrast = 49
     maxContrast = 50
     
     def addColorBar(self):
