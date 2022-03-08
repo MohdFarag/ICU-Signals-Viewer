@@ -11,5 +11,4 @@
 </ul>
 <br><br>
 ### **PREVIEW:**
-![Screenshot](https://user-images.githubusercontent.com/84231705/157340132-43e51eff-4c25-47e1-b220-ad85135a086c.png)
-
+![Screenshot](https://user-images.githubusercontent.com/84231705/157340213-6eff313c-3732-4f92-af43-e97519f33077.png)
