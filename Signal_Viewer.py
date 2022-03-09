@@ -59,7 +59,7 @@ class Window(QMainWindow):
         self.setWindowIcon(QIcon('icon.png'))
         
         # setting title
-        self.setWindowTitle("Multi-Channel Signal Viewer")
+        self.setWindowTitle("ICU Signal Viewer")
 
         # UI contents
         self._createMenuBar()
