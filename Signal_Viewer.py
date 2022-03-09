@@ -42,6 +42,7 @@ class Window(QMainWindow):
         self.data_channel_2 = [0]
         self.data_channel_3 = [0]
         self.existChannel = [0, 0, 0]
+        self.plotStatus = True
         # self.data_channel_1 = [np.random.randint(20,30) for i in range(0,500)]
         # self.data_channel_2 = [np.random.randint(-10,10) for i in range(0,500)]
         # self.data_channel_3 = [np.random.randint(-30,-20) for i in range(0,500)]
@@ -56,7 +57,7 @@ class Window(QMainWindow):
         self.speed = 50
         """main properties"""
         # setting icon to the window
-        self.setWindowIcon(QIcon('icon.png'))
+        self.setWindowIcon(QIcon('images/icon.png'))
         
         # setting title
         self.setWindowTitle("ICU Signal Viewer")
@@ -64,9 +65,11 @@ class Window(QMainWindow):
         # UI contents
         self._createMenuBar()
         self.initUI()
-
+        
+        # Status Bar
         self.statusBar = QStatusBar()
-        self.statusBar.setStyleSheet("font-size:12px; padding: 3px;")
+        self.statusBar.setStyleSheet("font-size:13px; padding: 3px; color: black; font-weight:900")
+        self.statusBar.showMessage("Welcome to our application...")
         self.setStatusBar(self.statusBar)
 
     def initUI(self):
@@ -107,10 +110,9 @@ class Window(QMainWindow):
         # Create a layout for the main buttons
         mainButtonsLayout = QHBoxLayout()
 
-        mainButtonsLayout.addSpacerItem(QSpacerItem(200, 10, QSizePolicy.Expanding))
+        mainButtonsLayout.addSpacerItem(QSpacerItem(250, 10, QSizePolicy.Expanding))
 
         # Main buttons to manipulate the plot
-
         def signalSpeed(increaseDecrease):
                 if increaseDecrease :
                     if self.speed + 10 < 100: 
@@ -129,38 +131,41 @@ class Window(QMainWindow):
                 self.SpeedSlider.setValue(int(self.speed))
                 self.timer.setInterval(int((100-self.speed)))
 
-        def pausePlay(pauseOrPlay):
-            if pauseOrPlay:
+        def pausePlay():
+            if not self.plotStatus:
                 self.timer.start()
-                self.statusBar.showMessage("Plot is running... you CAN'T add any signal while plot is running.")
+                self.plotStatus = True
+                self.PlayBtn.setIcon(QIcon("images/pause.ico"))
+                self.statusBar.showMessage("Plot is running.. You can't add any signal while plot is running.")
             else :
                 self.timer.stop()
+                self.plotStatus = False
+                self.PlayBtn.setIcon(QIcon("images/play.ico"))
                 self.statusBar.showMessage("Plot is paused.")
 
         # Down Button
-        downSpeedBtn = QPushButton("-")
+        downSpeedBtn = QPushButton()
+        downSpeedBtn.setIcon(QIcon("images/decrease.svg"))
         downSpeedBtn.clicked.connect(partial(signalSpeed,False))
         # PauseAndPlay
-        PauseBtn = QPushButton("Pause")
-        PauseBtn.clicked.connect(partial(pausePlay,False))
-        PlayBtn = QPushButton("Play")
-        PlayBtn.clicked.connect(partial(pausePlay,True))
+        self.PlayBtn = QPushButton()
+        self.PlayBtn.setIcon(QIcon("images/play.ico"))
+        self.PlayBtn.clicked.connect(pausePlay)
         # Up Button
-        UpSpeedBtn = QPushButton("+")
+        UpSpeedBtn = QPushButton()
+        UpSpeedBtn.setIcon(QIcon("images/increase.svg"))
         UpSpeedBtn.clicked.connect(partial(signalSpeed,True))
 
         # StyleSheet
-        downSpeedBtn.setStyleSheet("font-size:14px; border-radius: 6px;border: 1px solid rgba(27, 31, 35, 0.15);padding: 5px 15px;")
-        PauseBtn.setStyleSheet("font-size:14px; border-radius: 6px;border: 1px solid rgba(27, 31, 35, 0.15);padding: 5px 15px;")
-        PlayBtn.setStyleSheet("font-size:14px; border-radius: 6px;border: 1px solid rgba(27, 31, 35, 0.15);padding: 5px 15px;")
-        UpSpeedBtn.setStyleSheet("font-size:14px; border-radius: 6px;border: 1px solid rgba(27, 31, 35, 0.15);padding: 5px 15px;")
+        downSpeedBtn.setStyleSheet("font-size:14px; border-radius: 6px;border: 1px solid rgba(27, 31, 35, 0.15);padding: 5px 15px; background: black")
+        self.PlayBtn.setStyleSheet("font-size:14px; border-radius: 6px;border: 1px solid rgba(27, 31, 35, 0.15);padding: 5px 15px;")
+        UpSpeedBtn.setStyleSheet("font-size:14px; border-radius: 6px;border: 1px solid rgba(27, 31, 35, 0.15);padding: 5px 15px; background: black")
 
         mainButtonsLayout.addWidget(downSpeedBtn,1)
-        mainButtonsLayout.addWidget(PauseBtn,2)
-        mainButtonsLayout.addWidget(PlayBtn,2)
+        mainButtonsLayout.addWidget(self.PlayBtn,1)
         mainButtonsLayout.addWidget(UpSpeedBtn,1)
         
-        mainButtonsLayout.addSpacerItem(QSpacerItem(200, 10, QSizePolicy.Expanding))
+        mainButtonsLayout.addSpacerItem(QSpacerItem(250, 10, QSizePolicy.Expanding))
 
         def SpeedSliderChange(value):
             self.speed = value
@@ -198,9 +203,12 @@ class Window(QMainWindow):
 
         # Min Contrast changer
         def minSpectrogramSliderChange(value):
+            if value > maxSpectrogramSlider.value():
+                value = maxSpectrogramSlider.value()
             self.minvalueLabel.setText(str(value))
             self.spectrogramGraph.set_minContrast(value)
             self.spectrogramGraph.plotSignal()
+
         # Min contrast spectrogram control
         minContrastSpectrogramLayout = QHBoxLayout()        
         minLabel = QLabel("Min:")
@@ -215,6 +223,9 @@ class Window(QMainWindow):
 
         # Max Contrast changer
         def maxSpectrogramSliderChange(value):
+            if value < minSpectrogramSlider.value():
+                value = minSpectrogramSlider.value()
+
             self.maxValueLabel.setText(str(value))
             self.spectrogramGraph.set_maxContrast(value)
             self.spectrogramGraph.plotSignal()
@@ -305,6 +316,7 @@ class Window(QMainWindow):
             self.timer.setInterval((int(5*(100-self.speed))))
             self.timer.timeout.connect(self.update_plot_data)
             self.timer.start()
+            self.PlayBtn.setIcon(QIcon("images/pause.ico"))
             
     def update_plot_data(self):
         if len(self.time_live) < len(self.time) - 1:
@@ -376,8 +388,9 @@ class Window(QMainWindow):
 
         buttonsLayout.addSpacerItem(QSpacerItem(100, 10, QSizePolicy.Expanding))
 
-        self.clearChannel1 = QPushButton("Clear the channel")
-        self.clearChannel1.setStyleSheet("font-size:14px; border-radius: 6px;border: 1px solid rgba(27, 31, 35, 0.15);padding: 5px 15px;")
+        self.clearChannel1 = QPushButton()
+        self.clearChannel1.setIcon(QIcon("images/clear.svg"))
+        self.clearChannel1.setStyleSheet("background: black; font-size:14px; border-radius: 6px;border: 1px solid rgba(27, 31, 35, 0.15);padding: 5px 15px;")
         self.clearChannel1.clicked.connect(partial(self.signalClear,0))
         buttonsLayout.addWidget(self.clearChannel1,1)
 
@@ -430,8 +443,9 @@ class Window(QMainWindow):
 
         buttonsLayout.addSpacerItem(QSpacerItem(100, 10, QSizePolicy.Expanding))
 
-        self.clearChannel2 = QPushButton("Clear the channel")
-        self.clearChannel2.setStyleSheet("font-size:14px; border-radius: 6px;border: 1px solid rgba(27, 31, 35, 0.15);padding: 5px 15px;")
+        self.clearChannel2 = QPushButton()
+        self.clearChannel2.setIcon(QIcon("images/clear.svg"))
+        self.clearChannel2.setStyleSheet("background: black; font-size:14px; border-radius: 6px;border: 1px solid rgba(27, 31, 35, 0.15);padding: 5px 15px;")
         self.clearChannel2.clicked.connect(partial(self.signalClear,1))
         buttonsLayout.addWidget(self.clearChannel2,1)
         buttonsLayout.addSpacerItem(QSpacerItem(100, 10, QSizePolicy.Expanding))
@@ -481,8 +495,9 @@ class Window(QMainWindow):
 
         buttonsLayout.addSpacerItem(QSpacerItem(100, 10, QSizePolicy.Expanding))
         
-        self.clearChannel3 = QPushButton("Clear the channel")
-        self.clearChannel3.setStyleSheet("font-size:14px; border-radius: 6px;border: 1px solid rgba(27, 31, 35, 0.15);padding: 5px 15px;")
+        self.clearChannel3 = QPushButton()
+        self.clearChannel3.setIcon(QIcon("images/clear.svg"))
+        self.clearChannel3.setStyleSheet("background: black; font-size:14px; border-radius: 6px;border: 1px solid rgba(27, 31, 35, 0.15);padding: 5px 15px;")
         self.clearChannel3.clicked.connect(partial(self.signalClear,2))
         buttonsLayout.addWidget(self.clearChannel3,1)
         buttonsLayout.addSpacerItem(QSpacerItem(100, 10, QSizePolicy.Expanding))
@@ -637,14 +652,14 @@ class Window(QMainWindow):
     # Export information in PDF
     def exportPDF(self):
         exporter = pg.exporters.ImageExporter(self.GrLayout.scene())
-        exporter.export('image.png')
+        exporter.export('images/image.png')
 
         output_file, _ = QFileDialog.getSaveFileName(self, 'Export PDF', None, 'PDF files (.pdf);;All Files()')
         if output_file != '':
             if QFileInfo(output_file).suffix() == "" : output_file += '.pdf'
 
-            input_file = "blank.pdf"
-            image_file = "image.png"
+            input_file = "others/blank.pdf"
+            image_file = "images/image.png"
             
             # Adding Image
             img = open(image_file, "rb").read()
@@ -769,6 +784,7 @@ class Window(QMainWindow):
             self.data_channel_live_3 = [0]
             self.tabs.removeTab(3)
         
+        self.PlayBtn.setIcon(QIcon("images/pause.ico"))
         self.existChannel[channelNumber] = 0
         self._updatePlot()
     
