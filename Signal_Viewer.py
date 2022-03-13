@@ -5,16 +5,17 @@ import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-from PyQt5.QtPrintSupport import QPrintDialog, QPrinter, QPrintPreviewDialog
 from PyQt5.Qt import QFileInfo
+
 # import fitz
 from fitz import fitz, Rect
-# importing numpy as np
+
+# importing numpy and pandas
 import numpy as np
 import pandas as pd
-# importing pyqtgraph as pg
+
+# importing PyQtGraph
 import pyqtgraph as pg
-import pyqtgraph.exporters
 from pyqtgraph.Qt import QtCore
 from pyqtgraph.dockarea import *
 
@@ -25,6 +26,7 @@ from time import perf_counter, time
 # import scipy
 from scipy.io import loadmat
 
+#Import spectrogram.py class
 import spectrogram
 
 
@@ -55,6 +57,7 @@ class Window(QMainWindow):
         self.time_live = list()
 
         self.speed = 50
+        
         """main properties"""
         # setting icon to the window
         self.setWindowIcon(QIcon('images/icon.png'))
@@ -284,7 +287,7 @@ class Window(QMainWindow):
     # Create a menu bar
     def _createMenuBar(self):
         """MenuBar"""
-        toolbar = QToolBar("My main toolbar")
+        toolbar = QToolBar("ICU Toolbar")
         self.addToolBar(toolbar)
 
         menuBar = self.menuBar()
