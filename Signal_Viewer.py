@@ -208,6 +208,8 @@ class Window(QMainWindow):
         def minSpectrogramSliderChange(value):
             if value > maxSpectrogramSlider.value():
                 value = maxSpectrogramSlider.value()
+                minSpectrogramSlider.setValue(value)
+
             self.minvalueLabel.setText(str(value))
             self.spectrogramGraph.set_minContrast(value)
             self.spectrogramGraph.plotSignal()
@@ -217,7 +219,7 @@ class Window(QMainWindow):
         minLabel = QLabel("Min:")
         minLabel.setStyleSheet("font-size: 13px;padding: 2px;font-weight: 800;")
         minSpectrogramSlider = QSlider(Qt.Horizontal, self)
-        minSpectrogramSlider.setValue(50)
+        minSpectrogramSlider.setValue(0)
         minSpectrogramSlider.valueChanged[int].connect(minSpectrogramSliderChange)  
         self.minvalueLabel = QLabel(str(minSpectrogramSlider.value()))  
         minContrastSpectrogramLayout.addWidget(minLabel)
@@ -228,7 +230,7 @@ class Window(QMainWindow):
         def maxSpectrogramSliderChange(value):
             if value < minSpectrogramSlider.value():
                 value = minSpectrogramSlider.value()
-
+                maxSpectrogramSlider.setValue(value)
             self.maxValueLabel.setText(str(value))
             self.spectrogramGraph.set_maxContrast(value)
             self.spectrogramGraph.plotSignal()
@@ -238,7 +240,7 @@ class Window(QMainWindow):
         maxLabel = QLabel("Max:")
         maxLabel.setStyleSheet("font-size: 13px;padding: 2px; font-weight: 800;")
         maxSpectrogramSlider = QSlider(Qt.Horizontal, self)
-        maxSpectrogramSlider.setValue(50)
+        maxSpectrogramSlider.setValue(100)
         maxSpectrogramSlider.valueChanged[int].connect(maxSpectrogramSliderChange)
         self.maxValueLabel = QLabel(str(maxSpectrogramSlider.value()))    
         maxContrastSpectrogramLayout.addWidget(maxLabel)
