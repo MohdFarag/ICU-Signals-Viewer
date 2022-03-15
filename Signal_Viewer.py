@@ -795,7 +795,16 @@ class Window(QMainWindow):
     
     # Quit the window    
     def exit(self):
-        sys.exit()
+        dlg = QMessageBox(self)
+        dlg.setWindowTitle("Exit the application")
+        dlg.setText("Are you sure you want to exit the application ?")
+        dlg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        dlg.setIcon(QMessageBox.Question)
+        button = dlg.exec()
+
+        if button == QMessageBox.Yes:
+            sys.exit()
+        
 
 if __name__ == "__main__":
     # Initialize Our Window App
