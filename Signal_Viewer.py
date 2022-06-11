@@ -45,11 +45,6 @@ class Window(QMainWindow):
         self.data_channel_3 = [0]
         self.existChannel = [0, 0, 0]
         self.plotStatus = True
-        # self.data_channel_1 = [np.random.randint(20,30) for i in range(0,500)]
-        # self.data_channel_2 = [np.random.randint(-10,10) for i in range(0,500)]
-        # self.data_channel_3 = [np.random.randint(-30,-20) for i in range(0,500)]
-        # self.existChannel = [1, 1, 1]
-        #self.data_channel = [-10] * 10  # Default Value
 
         self.data_channel_live_1 = list()
         self.data_channel_live_2 = list()
@@ -202,7 +197,7 @@ class Window(QMainWindow):
         self.spectrogramGraph.plotSignal()
         self.spectrogramGraph.clearSignal()
         self.spectrogramGraph.autoFillBackground()
-        self.spectrogramGraph.addColorBar()
+        # self.spectrogramGraph.addColorBar()
 
         # Min Contrast changer
         def minSpectrogramSliderChange(value):
@@ -525,7 +520,7 @@ class Window(QMainWindow):
         self.channelComboBox.addItem("Channel 2")
         self.channelComboBox.addItem("Channel 3")
 
-        self.channelComboBox.currentTextChanged.connect(partial(self.channelSpectrogram,self.spectrogramGraph))
+        self.channelComboBox.activated.connect(partial(self.channelSpectrogram,self.spectrogramGraph))
         
         buttonsLayout.addWidget(channelLabel,1)
         buttonsLayout.addWidget(self.channelComboBox,2)
@@ -581,11 +576,13 @@ class Window(QMainWindow):
             self.path, self.fileExtension = QFileDialog.getOpenFileName(None, "Load Signal File", os.getenv('HOME') ,"csv(*.csv);; text(*.txt)")
             if self.path == "":
                 return
+
             downloadedDataChannel = [0]
             if self.fileExtension == "csv(*.csv)":
-                downloadedDataChannel = pd.read_csv(self.path).iloc[:,0]
+                downloadedDataChannel = pd.read_csv(self.path).iloc[:,1]
                 downloadedDataChannel = downloadedDataChannel.values.tolist()
                 downloadedDataChannel = downloadedDataChannel[::] # sample rate
+
             self._addNewChannel(downloadedDataChannel)
             self._updatePlot()
         else :
@@ -729,7 +726,7 @@ class Window(QMainWindow):
     def colorSpectrogram(self, spectrogramGraph, color):
         self.statusBar.showMessage("Spectrogram platte color is changed to " + color + ".")
         spectrogramGraph.set_color(color)
-        spectrogramGraph.updateColorBar()
+        # spectrogramGraph.updateColorBar()
         spectrogramGraph.plotSignal()
 
     # Show and Hide the signal
@@ -762,16 +759,8 @@ class Window(QMainWindow):
 
     # set Limits of signal
     def setLimits(self):
-
-        all_data_channel = self.data_channel_1.copy()
-        all_data_channel.extend(self.data_channel_2)
-        all_data_channel.extend(self.data_channel_3)
-        self.PlotGraph.setLimits(xMin=min(self.time), xMax=max(self.time), 
-                                minXRange=0 , maxXRange=100,
-                                yMin=min(all_data_channel) - np.absolute(min(all_data_channel)/2) , 
-                                yMax=max(all_data_channel) + np.absolute(max(all_data_channel)/2))
-        #self.PlotGraph.setXRange(min=0, max=10, padding=1, update=True)
-
+        pass
+    
     def signalClear(self,channelNumber):
         if channelNumber == 0:
             self.data_line_ch1.clear()
