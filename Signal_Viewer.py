@@ -90,7 +90,7 @@ class Window(QMainWindow):
         self.PlotGraph = self.GrLayout.addPlot()
         self.PlotGraph.setTitle("Channels",color="white", size="18pt")
         self.PlotGraph.setLabel('bottom', 'Time', 's')
-        self.PlotGraph.showGrid(x=True, y=True)
+
         # Add legend
         self.legendItemName = self.PlotGraph.addLegend()
         self.legendItemName.anchor(1,1)
@@ -154,14 +154,19 @@ class Window(QMainWindow):
         UpSpeedBtn.setIcon(QIcon("images/increase.svg"))
         UpSpeedBtn.clicked.connect(partial(signalSpeed,True))
 
+        # Grid Button
+        self.gridShowBtn = QCheckBox("Show Grid", self)
+        self.gridShowBtn.setStyleSheet("font-size:14px;")
+        self.gridShowBtn.stateChanged.connect(self.showGrid)
+
         # StyleSheet
         downSpeedBtn.setStyleSheet("font-size:14px; border-radius: 6px;border: 1px solid rgba(27, 31, 35, 0.15);padding: 5px 15px; background: black")
         self.PlayBtn.setStyleSheet("font-size:14px; border-radius: 6px;border: 1px solid rgba(27, 31, 35, 0.15);padding: 5px 15px;")
         UpSpeedBtn.setStyleSheet("font-size:14px; border-radius: 6px;border: 1px solid rgba(27, 31, 35, 0.15);padding: 5px 15px; background: black")
 
-        mainButtonsLayout.addWidget(downSpeedBtn,1)
-        mainButtonsLayout.addWidget(self.PlayBtn,1)
-        mainButtonsLayout.addWidget(UpSpeedBtn,1)
+        mainButtonsLayout.addWidget(downSpeedBtn,2)
+        mainButtonsLayout.addWidget(self.PlayBtn,2)
+        mainButtonsLayout.addWidget(UpSpeedBtn,2)
         
         mainButtonsLayout.addSpacerItem(QSpacerItem(250, 10, QSizePolicy.Expanding))
 
@@ -187,9 +192,9 @@ class Window(QMainWindow):
         speedSliderLayout.addWidget(self.speedValueLabel,1)
         speedSliderLayout.addSpacerItem((QSpacerItem(30, 10, QSizePolicy.Expanding)))
 
-
         plotsLayout.addLayout(speedSliderLayout)
         plotsLayout.addLayout(mainButtonsLayout)
+        plotsLayout.addWidget(self.gridShowBtn)
 
         SpectrogramLayout = QVBoxLayout()
         
@@ -335,7 +340,14 @@ class Window(QMainWindow):
             
             self.incrementTimeAlongSignalRun +=1
             self.setLimits()            
-    
+
+    # Show grid
+    def showGrid(self):
+        if self.gridShowBtn.isChecked():
+            self.PlotGraph.showGrid(x=True, y=True)
+        else:
+            self.PlotGraph.showGrid(x=False, y=False)
+
     # Plot channel of the signal.
     def plotChannelSignal(self, Channel, x, y, plotname, color="w"):
         pen = pg.mkPen(color=color) 
