@@ -90,7 +90,11 @@ class Window(QMainWindow):
         self.PlotGraph = self.GrLayout.addPlot()
         self.PlotGraph.setTitle("Channels",color="white", size="18pt")
         self.PlotGraph.setLabel('bottom', 'Time', 's')
-
+        
+        self.GrLayout.setBackground('#222831')
+        self.PlotGraph.getAxis('left').setPen("#EEEEEE")
+        self.PlotGraph.getAxis('bottom').setPen("#EEEEEE")
+        
         # Add legend
         self.legendItemName = self.PlotGraph.addLegend()
         self.legendItemName.anchor(1,1)
