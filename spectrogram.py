@@ -42,10 +42,10 @@ class MplCanvas(FigureCanvasQTAgg):
         self.maxContrast = maxContrast
 
     def plotSignal(self):
-        fs = len(self.data_channel)   
-        nfft = 10
+        fs = len(self.data_channel)
+        nfft = 100
         self.data_channel = np.array(self.data_channel)
-        pxx,  freq, t, self.cax = self.axes.specgram(self.data_channel, nfft, fs, cmap=self.colorPalette, noverlap=nfft/3, mode="psd", vmin=self.minContrast,vmax=self.maxContrast)
+        pxx,  freq, t, self.cax = self.axes.specgram(self.data_channel, cmap=self.colorPalette, mode="psd", vmin=self.minContrast,vmax=self.maxContrast)
         self.colorBarSpectrogram.update_normal(self.cax)
         self.draw()
         

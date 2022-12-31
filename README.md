@@ -11,4 +11,7 @@
 </ul>
 
 ## PREVIEW:
+<img src="./docs/img (2).png">
 <img src="https://user-images.githubusercontent.com/84231705/157340213-6eff313c-3732-4f92-af43-e97519f33077.png">
+<img src="./docs/img (1).png">
+<img src="./docs/doc.png">

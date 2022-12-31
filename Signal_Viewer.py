@@ -16,15 +16,12 @@ import pandas as pd
 
 # importing PyQtGraph
 import pyqtgraph as pg
+import pyqtgraph.exporters
 from pyqtgraph.Qt import QtCore
 from pyqtgraph.dockarea import *
 
 import os
 from functools import partial
-# importing time
-from time import perf_counter, time
-# import scipy
-from scipy.io import loadmat
 
 #Import spectrogram.py class
 import spectrogram
@@ -669,7 +666,7 @@ class Window(QMainWindow):
         
     # Export information in PDF
     def exportPDF(self):
-        exporter = pg.exporters.ImageExporter(self.GrLayout.scene())
+        exporter = pyqtgraph.exporters.ImageExporter(self.GrLayout.scene())
         exporter.export('images/image.png')
 
         output_file, _ = QFileDialog.getSaveFileName(self, 'Export PDF', None, 'PDF files (.pdf);;All Files()')
